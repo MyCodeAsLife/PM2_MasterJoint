@@ -1,57 +1,35 @@
-using System.Collections;
 using UnityEngine;
 
 public class Catapult : MonoBehaviour
 {
-    [SerializeField] private SpringJoint _joint;
     [SerializeField] private Rigidbody _rigidbody;
+    [SerializeField] private SpringJoint _joint;
+    [SerializeField] private ProjectilePool _pool;
     [SerializeField] private Transform _projectilePoint;
 
-    private Projectile _projectilePrefab;
-    private float _maxSpring = 100f;
-    private float _minSpring = 1f;
+    private PlayerInputController _controller;
+    private Gunner _gunner;
 
-    private void Start()
+    private void Awake()
     {
-        const string PathToProjectile = "Prefabs/Projectile";
-        _projectilePrefab = Resources.Load<Projectile>(PathToProjectile);
-        StartCoroutine(Gunning());
+        _controller = new PlayerInputController();
+        _gunner = new Gunner(_rigidbody, _joint, _pool, _projectilePoint);
     }
 
-    private void Fire()
+    private void OnEnable()
     {
-        _joint.spring = _maxSpring;
-        _rigidbody.WakeUp();
+        _controller.SubscribeOnShoot(_gunner.Shoot);
+        _controller.SubscribeOnReload(_gunner.Reload);
     }
 
-    private void Pull()
+    private void OnDisable()
     {
-        _joint.spring = _minSpring;
-        _rigidbody.WakeUp();
+        _controller.UnSubscribeOnShoot(_gunner.Shoot);
+        _controller.UnSubscribeOnReload(_gunner.Reload);
     }
 
-    private void LoadProjectile()
+    private void Update()
     {
-        Instantiate(_projectilePrefab, _projectilePoint.position, Quaternion.identity);
-    }
-
-    private IEnumerator Gunning()
-    {
-        const float Seconds = 1.3f;
-
-        var delay = new WaitForSeconds(Seconds);
-        bool isWork = true;
-
-        while (isWork)
-        {
-            Fire();
-            yield return delay;
-
-            Pull();
-            yield return delay;
-
-            LoadProjectile();
-            yield return delay;
-        }
+        _gunner.Tick();
     }
 }
